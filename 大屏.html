@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>牛天齐你要打出自己</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --nba-blue: #1d428a;
+            --nba-red: #c8102e;
+            --nba-silver: #8a8d8f;
+            --dark-bg: #0c1c2c;
+            --card-bg: #1a2d47;
+            --accent: #ffcc00;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        body {
+            background: var(--dark-bg);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, var(--nba-blue), var(--nba-red));
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            color: var(--nba-silver);
+            margin-top: 8px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px 18px;
+            background-color: #0A84FF;
+            color: #fff;
+            border: none;
+            border-radius: 9999px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            box-shadow: 0 2px 6px rgba(10, 132, 255, 0.24);
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+        
+        .control-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 10px rgba(10, 132, 255, 0.22);
+        }
+        
+        .control-btn i {
+            margin-right: 8px;
+        }
+        
+        .scoreboard {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+            gap: 30px;
+        }
+        
+        .team-score {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            flex: 1;
+            max-width: 300px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .team-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--nba-silver);
+        }
+        
+        .score {
+            font-size: 4rem;
+            font-weight: 900;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .vs {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .player-stats {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--nba-red);
+            color: white;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+            color: var(--accent);
+        }
+        
+        /* 优化表格样式 - 全屏展示 */
+        .stats-table-container {
+            width: 100%;
+            overflow: visible; /* 移除滚动条 */
+        }
+        
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        
+        .stats-table th {
+            background: rgba(29, 66, 138, 0.5);
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--nba-silver);
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+        
+        .stats-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+        }
+        
+        .stats-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .highlight {
+            color: var(--nba-red);
+            font-weight: 700;
+        }
+        
+        .team-stats {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .pace-card {
+            background: linear-gradient(135deg, rgba(29, 66, 138, 0.3), rgba(200, 16, 46, 0.3));
+            border: 2px solid var(--accent);
+        }
+        
+        .stat-title {
+            font-size: 0.9rem;
+            color: var(--nba-silver);
+            margin-bottom: 8px;
+        }
+        
+        .pace-title {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+        }
+        
+        .pace-value {
+            color: var(--accent);
+            font-size: 2.2rem;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 15px;
+            color: var(--nba-silver);
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--nba-silver);
+        }
+        
+        .loading i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+        
+        .quarter-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .quarter-card {
+            background: var(--card-bg);
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .quarter-title {
+            font-size: 0.9rem;
+            color: var(--nba-silver);
+            margin-bottom: 5px;
+        }
+        
+        .quarter-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1400px) {
+            .container {
+                max-width: 1300px;
+            }
+            
+            .stats-table {
+                font-size: 0.9rem;
+            }
+            
+            .stats-table th, .stats-table td {
+                padding: 8px 6px;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-table {
+                font-size: 0.85rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .scoreboard {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .team-score {
+                max-width: 100%;
+                width: 100%;
+            }
+            
+            .vs {
+                transform: rotate(90deg);
+                margin: 5px 0;
+            }
+            
+            .quarter-info {
+                flex-wrap: wrap;
+            }
+            
+            .stats-table {
+                font-size: 0.8rem;
+            }
+            
+            .stats-table th, .stats-table td {
+                padding: 6px 4px;
+            }
+        }
+        
+        /* 表格列宽优化 */
+        .stats-table th:nth-child(1), .stats-table td:nth-child(1) { width: 12%; } /* 球员 */
+        .stats-table th:nth-child(2), .stats-table td:nth-child(2) { 
+            width: 10%; 
+            font-size: 1.1rem;
+            font-weight: 800;
+        }  /* 得分 - 加大字体 */
+        .stats-table th:nth-child(3), .stats-table td:nth-child(3) { width: 12%; } /* 总命中率 */
+        .stats-table th:nth-child(4), .stats-table td:nth-child(4) { width: 12%; } /* 2分 */
+        .stats-table th:nth-child(5), .stats-table td:nth-child(5) { width: 12%; } /* 3分 */
+        .stats-table th:nth-child(6), .stats-table td:nth-child(6) { width: 10%; } /* 罚球 */
+        .stats-table th:nth-child(7), .stats-table td:nth-child(7) { width: 8%; }  /* 篮板 */
+        .stats-table th:nth-child(8), .stats-table td:nth-child(8) { width: 8%; }  /* 助攻 */
+        .stats-table th:nth-child(9), .stats-table td:nth-child(9) { width: 8%; }  /* 抢断 */
+        .stats-table th:nth-child(10), .stats-table td:nth-child(10) { width: 8%; } /* 盖帽 */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>牛天齐你要打出自己</h1>
+            <p>专业篮球比赛数据可视化分析平台</p>
+        </div>
+        
+        <div class="controls">
+            <button class="control-btn" onclick="document.getElementById('fileInput').click()">
+                <i class="fas fa-file-upload"></i> 上传比赛数据
+            </button>
+        </div>
+        
+        <input type="file" id="fileInput" accept=".xlsx" style="display: none;">
+        
+        <div id="loading" class="loading" style="display: none;">
+            <i class="fas fa-basketball-ball fa-spin"></i>
+            <p>正在处理数据，请稍候...</p>
+        </div>
+        
+        <div id="dataDisplay" style="display: none;">
+            <div class="quarter-info">
+                <div class="quarter-card">
+                    <div class="quarter-title">比赛节数</div>
+                    <div class="quarter-value" id="quarterValue">4</div>
+                </div>
+                <div class="quarter-card">
+                    <div class="quarter-title">比赛时长</div>
+                    <div class="quarter-value" id="gameDuration">40分钟</div>
+                </div>
+                <div class="quarter-card">
+                    <div class="quarter-title">数据更新时间</div>
+                    <div class="quarter-value" id="updateTime">2023-11-15</div>
+                </div>
+            </div>
+            
+            <div class="scoreboard">
+                <div class="team-score">
+                    <div class="team-name">统院男篮</div>
+                    <div class="score" id="homeScore">0</div>
+                </div>
+                
+                <div class="vs">VS</div>
+                
+                <div class="team-score">
+                    <div class="team-name">对手球队</div>
+                    <div class="score" id="awayScore">0</div>
+                </div>
+            </div>
+            
+            <div class="stats-container">
+                <div class="player-stats">
+                    <div class="section-title">
+                        <i class="fas fa-users"></i> 球员数据统计
+                    </div>
+                    <div class="stats-table-container">
+                        <table class="stats-table" id="playerStatsTable">
+                            <thead>
+                                <tr>
+                                    <th>球员</th>
+                                    <th>得分</th>
+                                    <th>总命中率</th>
+                                    <th>2分</th>
+                                    <th>3分</th>
+                                    <th>罚球</th>
+                                    <th>篮板</th>
+                                    <th>助攻</th>
+                                    <th>抢断</th>
+                                    <th>盖帽</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 球员数据将通过JavaScript动态添加 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="team-stats">
+                    <div class="stat-card pace-card">
+                        <div class="stat-title pace-title">比赛节奏指标 (PACE)</div>
+                        <div class="stat-value pace-value" id="paceValue">0.0</div>
+                        <div class="stat-title">每48分钟进攻回合数</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-title">总命中率</div>
+                        <div class="stat-value" id="fgPercentage">0%</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-title">三分命中率</div>
+                        <div class="stat-value" id="threePercentage">0%</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-title">罚球命中率</div>
+                        <div class="stat-value" id="ftPercentage">0%</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-title">总篮板</div>
+                        <div class="stat-value" id="totalRebounds">0</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-title">总助攻</div>
+                        <div class="stat-value" id="totalAssists">0</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-title">总抢断</div>
+                        <div class="stat-value" id="totalSteals">0</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-title">总盖帽</div>
+                        <div class="stat-value" id="totalBlocks">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>统院男篮数据记录系统 &copy; 2023 | 数据更新于 <span id="currentDate"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // 设置当前日期
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('zh-CN');
+        
+        // 监听文件选择
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('dataDisplay').style.display = 'none';
+                
+                // 处理Excel文件
+                processExcelFile(file);
+            }
+        });
+        
+        // 处理Excel文件
+        function processExcelFile(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // 检查是否存在"我方球员数据"工作表
+                    if (workbook.SheetNames.includes('我方球员数据')) {
+                        const worksheet = workbook.Sheets['我方球员数据'];
+                        const playerData = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        // 检查是否存在"对手数据"工作表
+                        let opponentData = {};
+                        if (workbook.SheetNames.includes('对手数据')) {
+                            const opponentSheet = workbook.Sheets['对手数据'];
+                            const opponentDataArray = XLSX.utils.sheet_to_json(opponentSheet);
+                            if (opponentDataArray.length > 0) {
+                                opponentData = opponentDataArray[0];
+                            }
+                        }
+                        
+                        // 显示数据
+                        displayData(playerData, opponentData);
+                    } else {
+                        alert('Excel文件中没有找到球员数据！');
+                        document.getElementById('loading').style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('处理Excel文件时出错:', error);
+                    alert('处理Excel文件时出错: ' + error.message);
+                    document.getElementById('loading').style.display = 'none';
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // 显示数据
+        function displayData(playerData, opponentData) {
+            // 隐藏加载界面，显示数据
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dataDisplay').style.display = 'block';
+            
+            // 更新数据更新时间
+            document.getElementById('updateTime').textContent = new Date().toLocaleDateString('zh-CN');
+            
+            // 计算我方总分和各项数据总和
+            let homeScore = 0;
+            let totalAssists = 0;
+            let totalRebounds = 0;
+            let totalSteals = 0;
+            let totalBlocks = 0;
+            let totalFGMade = 0;
+            let totalFGAttempts = 0;
+            let total3PMade = 0;
+            let total3PAttempts = 0;
+            let totalFTMade = 0;
+            let totalFTAttempts = 0;
+            let totalTurnovers = 0;
+            let totalOffRebounds = 0;
+            
+            playerData.forEach(player => {
+                homeScore += player.得分 || 0;
+                totalAssists += player.助攻 || 0;
+                totalRebounds += player.总篮板 || 0;
+                totalSteals += player.抢断 || 0;
+                totalBlocks += player.盖帽 || 0;
+                totalTurnovers += player.失误 || 0;
+                totalOffRebounds += player.进攻篮板 || 0;
+                
+                // 计算投篮数据
+                totalFGMade += (player['2分命中'] || 0) + (player['3分命中'] || 0);
+                totalFGAttempts += (player['2分出手'] || 0) + (player['3分出手'] || 0);
+                total3PMade += player['3分命中'] || 0;
+                total3PAttempts += player['3分出手'] || 0;
+                totalFTMade += player['罚球命中'] || 0;
+                totalFTAttempts += player['罚球出手'] || 0;
+            });
+            
+            // 获取对手数据
+            let awayScore = opponentData.得分 || 0;
+            let opponentFGA = (opponentData['2分出手'] || 0) + (opponentData['3分出手'] || 0);
+            let opponentFTA = opponentData['罚球出手'] || 0;
+            let opponentTO = opponentData.失误 || 0;
+            let opponentORB = opponentData.进攻篮板 || 0;
+            
+            // 计算PACE指标（NBA官方标准公式）
+            const gameMinutes = 40; // 比赛时间为40分钟
+            const teamMinutes = 5 * gameMinutes; // 5名球员 × 比赛时间
+            
+            // 计算双方总进攻回合数（使用NBA官方公式）
+            const teamPossessions = totalFGAttempts + 0.44 * totalFTAttempts - totalOffRebounds + totalTurnovers;
+            const opponentPossessions = opponentFGA + 0.44 * opponentFTA - opponentORB + opponentTO;
+            const totalPossessions = teamPossessions + opponentPossessions;
+            
+            // PACE = (总回合数 / 2) × (240 / 球队总分钟数)
+            // 240 = 48分钟 × 5名球员，这里按比例调整为40分钟比赛
+            const paceValue = (totalPossessions / 2) * (teamMinutes / teamMinutes) * (48 / gameMinutes);
+            document.getElementById('paceValue').textContent = paceValue.toFixed(1);
+            
+            // 更新比分
+            document.getElementById('homeScore').textContent = homeScore;
+            document.getElementById('awayScore').textContent = awayScore;
+            
+            // 更新球员数据表格
+            const tableBody = document.querySelector('#playerStatsTable tbody');
+            tableBody.innerHTML = '';
+            
+            // 按得分排序
+            playerData.sort((a, b) => (b.得分 || 0) - (a.得分 || 0));
+            
+            playerData.forEach(player => {
+                const row = document.createElement('tr');
+                
+                // 计算各种命中率
+                const totalFGMade = (player['2分命中'] || 0) + (player['3分命中'] || 0);
+                const totalFGAttempts = (player['2分出手'] || 0) + (player['3分出手'] || 0);
+                const totalFGRate = totalFGAttempts > 0 ? 
+                    (totalFGMade / totalFGAttempts * 100).toFixed(1) + '%' : '0%';
+                
+                const twoPointRate = player['2分出手'] > 0 ? 
+                    (player['2分命中'] / player['2分出手'] * 100).toFixed(1) + '%' : '0%';
+                
+                const threePointRate = player['3分出手'] > 0 ? 
+                    (player['3分命中'] / player['3分出手'] * 100).toFixed(1) + '%' : '0%';
+                
+                const freeThrowRate = player['罚球出手'] > 0 ? 
+                    (player['罚球命中'] / player['罚球出手'] * 100).toFixed(1) + '%' : '0%';
+                
+                row.innerHTML = `
+                    <td>${player.姓名} <span style="color: #8a8d8f;">#${player.球衣号码}</span></td>
+                    <td class="highlight">${player.得分 || 0}</td>
+                    <td>${totalFGMade}/${totalFGAttempts} <span style="color: #8a8d8f;">${totalFGRate}</span></td>
+                    <td>${player['2分命中'] || 0}/${player['2分出手'] || 0} <span style="color: #8a8d8f;">${twoPointRate}</span></td>
+                    <td>${player['3分命中'] || 0}/${player['3分出手'] || 0} <span style="color: #8a8d8f;">${threePointRate}</span></td>
+                    <td>${player['罚球命中'] || 0}/${player['罚球出手'] || 0} <span style="color: #8a8d8f;">${freeThrowRate}</span></td>
+                    <td>${player.总篮板 || 0}</td>
+                    <td>${player.助攻 || 0}</td>
+                    <td>${player.抢断 || 0}</td>
+                    <td>${player.盖帽 || 0}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // 更新球队统计数据
+            document.getElementById('fgPercentage').textContent = 
+                totalFGAttempts > 0 ? (totalFGMade / totalFGAttempts * 100).toFixed(1) + '%' : '0%';
+            
+            document.getElementById('threePercentage').textContent = 
+                total3PAttempts > 0 ? (total3PMade / total3PAttempts * 100).toFixed(1) + '%' : '0%';
+            
+            document.getElementById('ftPercentage').textContent = 
+                totalFTAttempts > 0 ? (totalFTMade / totalFTAttempts * 100).toFixed(1) + '%' : '0%';
+            
+            document.getElementById('totalRebounds').textContent = totalRebounds;
+            document.getElementById('totalAssists').textContent = totalAssists;
+            document.getElementById('totalSteals').textContent = totalSteals;
+            document.getElementById('totalBlocks').textContent = totalBlocks;
+        }
+        
+        // 加载示例数据
+        function loadSampleData() {
+            const samplePlayerData = [
+                {
+                    "球衣号码": 91,
+                    "姓名": "牛天齐",
+                    "得分": 28,
+                    "2分出手": 12,
+                    "2分命中": 8,
+                    "3分出手": 6,
+                    "3分命中": 4,
+                    "罚球出手": 4,
+                    "罚球命中": 4,
+                    "总篮板": 10,
+                    "助攻": 8,
+                    "抢断": 2,
+                    "盖帽": 1
+                },
+                {
+                    "球衣号码": 11,
+                    "姓名": "金震环",
+                    "得分": 18,
+                    "2分出手": 10,
+                    "2分命中": 6,
+                    "3分出手": 4,
+                    "3分命中": 2,
+                    "罚球出手": 2,
+                    "罚球命中": 2,
+                    "总篮板": 5,
+                    "助攻": 5,
+                    "抢断": 3,
+                    "盖帽": 0
+                },
+                {
+                    "球衣号码": 5,
+                    "姓名": "徐孟琨",
+                    "得分": 15,
+                    "2分出手": 8,
+                    "2分命中": 5,
+                    "3分出手": 5,
+                    "3分命中": 1,
+                    "罚球出手": 6,
+                    "罚球命中": 4,
+                    "总篮板": 8,
+                    "助攻": 4,
+                    "抢断": 1,
+                    "盖帽": 2
+                },
+                {
+                    "球衣号码": 3,
+                    "姓名": "宋睿",
+                    "得分": 12,
+                    "2分出手": 6,
+                    "2分命中": 4,
+                    "3分出手": 4,
+                    "3分命中": 1,
+                    "罚球出手": 3,
+                    "罚球命中": 2,
+                    "总篮板": 6,
+                    "助攻": 3,
+                    "抢断": 2,
+                    "盖帽": 1
+                },
+                {
+                    "球衣号码": 4,
+                    "姓名": "张宇墨",
+                    "得分": 10,
+                    "2分出手": 8,
+                    "2分命中": 4,
+                    "3分出手": 2,
+                    "3分命中": 0,
+                    "罚球出手": 4,
+                    "罚球命中": 2,
+                    "总篮板": 7,
+                    "助攻": 2,
+                    "抢断": 1,
+                    "盖帽": 0
+                }
+            ];
+            
+            const sampleOpponentData = {
+                "得分": 75,
+                "2分出手": 40,
+                "2分命中": 18,
+                "3分出手": 20,
+                "3分命中": 7,
+                "罚球出手": 16,
+                "罚球命中": 12,
+                "进攻篮板": 10,
+                "防守篮板": 25,
+                "总篮板": 35,
+                "失误": 12,
+                "犯规": 18
+            };
+            
+            displayData(samplePlayerData, sampleOpponentData);
+        }
+        
+        // 页面加载后自动加载示例数据
+        window.addEventListener('load', function() {
+            loadSampleData();
+        });
+    </script>
+</body>
+</html>
